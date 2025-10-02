@@ -8,6 +8,9 @@
 .theme-aurora .side-nav { background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%); }
 .theme-aurora .status-applied { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
 .theme-aurora .status-review { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+.theme-aurora body, .theme-aurora .app-shell { background: linear-gradient(180deg, #f0fdf4 0%, #ecfeff 100%); }
+.theme-aurora .main-content h1, .theme-aurora .main-content h2, .theme-aurora .main-content h3, .theme-aurora .main-content h4, .theme-aurora .main-content h5, .theme-aurora .main-content h6 { color: #065f46; }
+.theme-aurora input, .theme-aurora select, .theme-aurora textarea { border-color: #a7f3d0 !important; }
 
 /* Sunset: orange/pink accents */
 .theme-sunset .btn-primary { background-color: #f97316; color: #fff; }
@@ -17,6 +20,9 @@
 .theme-sunset .side-nav { background: linear-gradient(135deg, #f97316 0%, #db2777 100%); }
 .theme-sunset .status-applied { background: #fff7ed; color: #9a3412; border-color: #ffedd5; }
 .theme-sunset .status-review { background: #fdf2f8; color: #9d174d; border-color: #fbcfe8; }
+.theme-sunset body, .theme-sunset .app-shell { background: linear-gradient(180deg, #fff7ed 0%, #fdf2f8 100%); }
+.theme-sunset .main-content h1, .theme-sunset .main-content h2, .theme-sunset .main-content h3, .theme-sunset .main-content h4, .theme-sunset .main-content h5, .theme-sunset .main-content h6 { color: #9a3412; }
+.theme-sunset input, .theme-sunset select, .theme-sunset textarea { border-color: #fdba74 !important; }
 
 /* Midnight: indigo/blue accents */
 .theme-midnight .btn-primary { background-color: #6366f1; color: #fff; }
@@ -26,3 +32,6 @@
 .theme-midnight .side-nav { background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%); }
 .theme-midnight .status-applied { background: #eef2ff; color: #3730a3; border-color: #e0e7ff; }
 .theme-midnight .status-review { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
+.theme-midnight body, .theme-midnight .app-shell { background: linear-gradient(180deg, #eef2ff 0%, #e0f2fe 100%); }
+.theme-midnight .main-content h1, .theme-midnight .main-content h2, .theme-midnight .main-content h3, .theme-midnight .main-content h4, .theme-midnight .main-content h5, .theme-midnight .main-content h6 { color: #1e3a8a; }
+.theme-midnight input, .theme-midnight select, .theme-midnight textarea { border-color: #c7d2fe !important; }

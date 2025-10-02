@@ -14,6 +14,8 @@ import SideNav from './components/ui/SideNav'
 import RoleSwitcher from './components/ui/RoleSwitcher'
 import './utils/autoArchiveService.jsx' // Import to start the service
 import './App.css'
+import './styles/themes.css'
+import ThemeSwitcher from './components/ui/ThemeSwitcher'
 
 function AppContent() {
   const location = useLocation()
@@ -52,7 +54,7 @@ function AppContent() {
   return (
     <div className="app-shell">
       <SideNav userRole={user?.role} />
-      <button 
+      <button
         onClick={() => setShowRoleSwitcher(!showRoleSwitcher)}
         style={{
           position: 'fixed',
@@ -70,7 +72,8 @@ function AppContent() {
         Toggle Role Switcher
       </button>
       {showRoleSwitcher && <RoleSwitcher />}
-      
+      <ThemeSwitcher />
+
       <main className="main-content">
         <Routes>
           {/* Jobs routes - different components based on role */}

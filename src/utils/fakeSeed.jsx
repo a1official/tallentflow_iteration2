@@ -168,45 +168,179 @@ export async function fakeSeed(db) {
 
   await db.applications.bulkAdd(applications)
 
-  // Create exactly 3 assessments with 10+ questions each
-  for (let j = 1; j <= 3; j++) {
-    const assessment = {
-      jobId: j,
-      title: `Assessment for ${jobs[j-1].title}`,
-      description: `Comprehensive assessment to evaluate candidates for the ${jobs[j-1].title} position.`,
-      timeLimit: random([30, 45, 60, 90]), // minutes
-      sections: [{
-        id: 1,
-        title: 'Technical Skills & Experience',
-        description: 'Questions about your technical background and experience',
-        questions: Array.from({ length: 12 }).map((__, q) => {
-          const type = random(questionTypes)
-          return {
-            id: q + 1,
-            type: type,
-            label: random(questionTemplates[type]),
-            required: Math.random() < 0.8, // 80% of questions are required
-            options: type === 'single' || type === 'multi' ? [
-              'Option A', 'Option B', 'Option C', 'Option D'
-            ] : undefined,
-            placeholder: type === 'short' ? 'Your answer here...' : 
-                        type === 'long' ? 'Please provide a detailed response...' :
-                        type === 'numeric' ? 'Enter a number' : undefined,
-            validation: type === 'numeric' ? { min: 0, max: 100 } : undefined
-          }
-        })
-      }],
-      createdAt: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(), // Created within last 30 days
+  // Create exactly 5 assessments with real questions
+  const assessments = [
+    {
+      jobId: 1,
+      title: 'Frontend Developer Assessment',
+      description: `Practical questions to evaluate modern web fundamentals, React, and performance/accessibility.`,
+      timeLimit: 60,
+      sections: [
+        {
+          id: 1,
+          title: 'HTML/CSS Fundamentals',
+          description: 'Core web semantics and layout best practices',
+          questions: [
+            { id: 1, type: 'single', label: 'Which HTML element is best for marking up a page’s primary navigation?', required: true, options: ['<nav>', '<menu>', '<section>', '<aside>'] },
+            { id: 2, type: 'short', label: 'Explain the difference between display: none and visibility: hidden.', required: true },
+            { id: 3, type: 'single', label: 'Which layout technique enables two-dimensional control (rows and columns)?', required: true, options: ['Flexbox', 'Grid', 'Floats', 'Inline-block'] },
+            { id: 4, type: 'short', label: 'What problem do CSS custom properties solve compared to preprocessor variables?', required: true },
+            { id: 5, type: 'single', label: 'Which attribute improves image loading performance for below-the-fold content?', required: true, options: ['decoding="sync"', 'loading="lazy"', 'fetchpriority="high"', 'draggable="true"'] },
+            { id: 6, type: 'short', label: 'Describe an accessible way to hide content visually but keep it available to screen readers.', required: false },
+            { id: 7, type: 'single', label: 'Which unit scales with the root font-size?', required: true, options: ['em', 'rem', 'px', 'vh'] },
+            { id: 8, type: 'short', label: 'When would you use <figure> and <figcaption>?', required: false }
+          ]
+        },
+        {
+          id: 2,
+          title: 'React & State Management',
+          description: 'Component patterns, hooks, and rendering behavior',
+          questions: [
+            { id: 1, type: 'short', label: 'Explain the difference between useMemo and useCallback with examples.', required: true },
+            { id: 2, type: 'single', label: 'Which hook is best for subscribing to external stores in React 18?', required: true, options: ['useEffect', 'useLayoutEffect', 'useSyncExternalStore', 'useReducer'] },
+            { id: 3, type: 'short', label: 'Describe how React keys impact reconciliation and list reordering.', required: true },
+            { id: 4, type: 'short', label: 'When would you choose context over prop drilling? Mention trade-offs.', required: true },
+            { id: 5, type: 'short', label: 'How do you avoid unnecessary re-renders in large lists?', required: false }
+          ]
+        },
+        {
+          id: 3,
+          title: 'Performance & Accessibility',
+          description: 'Web vitals and inclusive UX',
+          questions: [
+            { id: 1, type: 'short', label: 'Name three ways to reduce JavaScript bundle size in a React app.', required: true },
+            { id: 2, type: 'short', label: 'Explain the purpose of aria-live regions and when to use them.', required: true },
+            { id: 3, type: 'short', label: 'How do you measure and improve LCP on a SPA?', required: false }
+          ]
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      isActive: true
+    },
+    {
+      jobId: 2,
+      title: 'Backend (Node.js) Assessment',
+      description: 'APIs, data modeling, scalability, and reliability.',
+      timeLimit: 75,
+      sections: [
+        {
+          id: 1,
+          title: 'API Design',
+          description: 'REST, resources, and versioning',
+          questions: [
+            { id: 1, type: 'short', label: 'When would you choose PUT vs PATCH? Provide examples.', required: true },
+            { id: 2, type: 'single', label: 'Which status code best represents a rate limit exceeded?', required: true, options: ['400', '401', '403', '429'] },
+            { id: 3, type: 'short', label: 'Describe idempotency and why it matters for APIs.', required: true }
+          ]
+        },
+        {
+          id: 2,
+          title: 'Data & Reliability',
+          description: 'Transactions, caching, and queues',
+          questions: [
+            { id: 1, type: 'short', label: 'Explain eventual consistency and an example where it’s acceptable.', required: true },
+            { id: 2, type: 'short', label: 'Compare Redis caching strategies: write-through vs write-back.', required: false },
+            { id: 3, type: 'short', label: 'When would you use a message queue? Mention retry and DLQ patterns.', required: true }
+          ]
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      isActive: true
+    },
+    {
+      jobId: 3,
+      title: 'Data Science Assessment',
+      description: 'Modeling, evaluation, and data pipelines.',
+      timeLimit: 60,
+      sections: [
+        {
+          id: 1,
+          title: 'ML Fundamentals',
+          description: 'Bias-variance and metrics',
+          questions: [
+            { id: 1, type: 'short', label: 'Explain bias-variance tradeoff and how to detect overfitting.', required: true },
+            { id: 2, type: 'single', label: 'Which metric is suitable for imbalanced classification?', required: true, options: ['Accuracy', 'Precision', 'Recall', 'ROC AUC'] },
+            { id: 3, type: 'short', label: 'When would you choose XGBoost over linear regression?', required: true }
+          ]
+        },
+        {
+          id: 2,
+          title: 'Data Engineering',
+          description: 'ETL/ELT and orchestration',
+          questions: [
+            { id: 1, type: 'short', label: 'Compare ETL vs ELT with a warehouse example.', required: true },
+            { id: 2, type: 'short', label: 'List three partitioning strategies for large datasets.', required: false }
+          ]
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      isActive: true
+    },
+    {
+      jobId: 4,
+      title: 'DevOps/SRE Assessment',
+      description: 'CI/CD, observability, and reliability engineering.',
+      timeLimit: 45,
+      sections: [
+        {
+          id: 1,
+          title: 'CI/CD & Infra',
+          description: 'Pipelines and IaC',
+          questions: [
+            { id: 1, type: 'short', label: 'Blue/Green vs Rolling deployments—trade-offs?', required: true },
+            { id: 2, type: 'short', label: 'What problems does IaC solve? Mention drift and reviewability.', required: true }
+          ]
+        },
+        {
+          id: 2,
+          title: 'Observability',
+          description: 'Logs, metrics, and traces',
+          questions: [
+            { id: 1, type: 'short', label: 'Define RED vs USE metrics; when to use each.', required: true },
+            { id: 2, type: 'short', label: 'Alert fatigue: how to design actionable alerts?', required: false }
+          ]
+        }
+      ],
+      createdAt: new Date().toISOString(),
+      isActive: true
+    },
+    {
+      jobId: 5,
+      title: 'Product Manager Assessment',
+      description: 'Discovery, prioritization, and stakeholder management.',
+      timeLimit: 40,
+      sections: [
+        {
+          id: 1,
+          title: 'Discovery & Prioritization',
+          description: 'Frameworks and trade-offs',
+          questions: [
+            { id: 1, type: 'short', label: 'Explain RICE scoring and when it can mislead prioritization.', required: true },
+            { id: 2, type: 'short', label: 'Draft a problem statement for improving onboarding completion.', required: true }
+          ]
+        },
+        {
+          id: 2,
+          title: 'Execution',
+          description: 'Roadmaps and alignment',
+          questions: [
+            { id: 1, type: 'short', label: 'How do you handle conflicting stakeholder requests?', required: true },
+            { id: 2, type: 'short', label: 'Define a success metric for a new search feature.', required: false }
+          ]
+        }
+      ],
+      createdAt: new Date().toISOString(),
       isActive: true
     }
-    await db.assessments.add(assessment)
-  }
+  ];
+
+  await db.assessments.bulkAdd(assessments);
 
   console.log('✅ Seed data created:', {
     jobs: jobs.length,
     candidates: candidates.length,
     applications: applications.length,
-    assessments: 3,
+    assessments: assessments.length,
     activeJobs: jobs.filter(j => j.status === 'active').length,
     archivedJobs: jobs.filter(j => j.status === 'archived').length
   })

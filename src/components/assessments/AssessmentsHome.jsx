@@ -5,23 +5,33 @@ import AssessmentResults from './AssessmentResults';
 
 const AssessmentsHome = () => {
   const [assessments, setAssessments] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [showBuilder, setShowBuilder] = useState(false);
   const [viewingResultsOf, setViewingResultsOf] = useState(null);
 
   useEffect(() => {
-    // In a real app, you would fetch the list of saved assessments
-    // For now, we'll use a mock list
-    setAssessments([
-      { id: 1, title: 'Frontend Developer Assessment', rounds: [{ title: 'Coding Challenge', questions: [] }] },
-      { id: 2, title: 'Backend Developer Assessment', rounds: [{ title: 'System Design', questions: [] }] },
-    ]);
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch('/api/assessments');
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load assessments');
+        setAssessments(data.items || []);
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, []);
 
   const handleDeploy = (assessmentId) => {
     const jobId = prompt('Enter the Job ID to deploy this assessment to:');
     if (jobId) {
       console.log(`Deploying assessment ${assessmentId} to job ${jobId}`);
-      // Here you would typically make an API call to associate the assessment with the job
       alert(`Assessment ${assessmentId} deployed to Job ID: ${jobId}`);
     }
   };
@@ -49,24 +59,30 @@ const AssessmentsHome = () => {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>Assessments</h2>
-        <button 
-          className="btn btn-primary" 
+        <button
+          className="btn btn-primary"
           onClick={() => setShowBuilder(true)}
           style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem' }}
         >
           Create New Assessment
         </button>
       </div>
-      <div>
-        {assessments.map((assessment) => (
-          <AssessmentCard
-            key={assessment.id}
-            assessment={assessment}
-            onDeploy={handleDeploy}
-            onViewResults={handleViewResults}
-          />
-        ))}
-      </div>
+      {loading ? (
+        <div className="card" style={{ padding: '1rem', marginTop: '1rem', textAlign: 'center' }}>Loading...</div>
+      ) : error ? (
+        <div className="card" style={{ padding: '1rem', marginTop: '1rem', color: 'red', textAlign: 'center' }}>Error: {error}</div>
+      ) : (
+        <div>
+          {assessments.map((assessment) => (
+            <AssessmentCard
+              key={assessment.id}
+              assessment={assessment}
+              onDeploy={handleDeploy}
+              onViewResults={handleViewResults}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

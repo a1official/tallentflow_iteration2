@@ -6,6 +6,7 @@
     "@fortawesome/fontawesome-svg-core": "^7.0.1",
     "@fortawesome/free-solid-svg-icons": "^7.0.1",
     "@fortawesome/react-fontawesome": "^3.0.2",
+    "@hello-pangea/dnd": "^18.0.1",
     "classnames": "^2.3.2",
     "customize-cra": "^1.0.0",
     "dexie": "^3.2.2",

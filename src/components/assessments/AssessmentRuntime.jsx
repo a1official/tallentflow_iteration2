@@ -1,89 +1,303 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import PreAssessmentForm from './PreAssessmentForm';
+import './AssessmentRuntime.css';
+
+const keyFor = (jobId) => `assessment_answers_${jobId}`;
+const deadlineKeyFor = (jobId) => `assessment_deadline_${jobId}`;
 
 const AssessmentRuntime = () => {
+  const { jobId } = useParams();
+  const navigate = useNavigate();
   const [candidate, setCandidate] = useState(null);
   const [assessment, setAssessment] = useState(null);
   const [answers, setAnswers] = useState({});
-  const [currentRound, setCurrentRound] = useState(0);
-  const [jobId, setJobId] = useState('');
+  const [marked, setMarked] = useState({});
+  const [currentSection, setCurrentSection] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [deadline, setDeadline] = useState(null);
+  const timerRef = useRef();
 
   const handleFormSubmit = (details) => {
     setCandidate(details);
   };
 
-  const handleAnswerChange = (roundIndex, questionIndex, value) => {
-    setAnswers((prev) => ({
-      ...prev,
-      [`${roundIndex}-${questionIndex}`]: value,
-    }));
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Assessment Submitted:', { candidate, answers });
-    alert('Assessment submitted successfully!');
-  };
-
+  // Load assessment
   useEffect(() => {
-    if (jobId) {
-      // In a real app, you would fetch the assessment for the given jobId
-      // For now, we'll use a mock assessment structure
-      setAssessment({
-        title: `Assessment for Job #${jobId}`,
-        rounds: [
-          { title: 'Round 1: Aptitude', questions: Array(15).fill({ text: 'Sample Question', type: 'text' }) },
-          { title: 'Round 2: Technical', questions: Array(15).fill({ text: 'Sample Question', type: 'text' }) },
-          { title: 'Round 3: HR', questions: Array(15).fill({ text: 'Sample Question', type: 'text' }) },
-        ],
-      });
-    }
+    const load = async () => {
+      if (!jobId) return;
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/assessments/${jobId}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to load assessment');
+        // Normalize sections
+        const sections = Array.isArray(data.sections) && data.sections.length
+          ? data.sections
+          : (Array.isArray(data.rounds) ? data.rounds.map((r, idx) => ({ id: idx + 1, title: r.title || `Round ${idx+1}`, description: r.description || '', questions: r.questions || [] })) : []);
+        setAssessment({ ...data, sections });
+        // Load saved answers
+        const saved = localStorage.getItem(keyFor(jobId));
+        if (saved) setAnswers(JSON.parse(saved));
+        // Setup deadline
+        const existingDeadline = localStorage.getItem(deadlineKeyFor(jobId));
+        if (existingDeadline) {
+          setDeadline(new Date(existingDeadline).getTime());
+        } else if (data.timeLimit) {
+          const d = Date.now() + Number(data.timeLimit) * 60 * 1000;
+          localStorage.setItem(deadlineKeyFor(jobId), new Date(d).toISOString());
+          setDeadline(d);
+        }
+      } catch (e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
   }, [jobId]);
+
+  // Autosave
+  useEffect(() => {
+    if (!jobId) return;
+    localStorage.setItem(keyFor(jobId), JSON.stringify(answers));
+  }, [answers, jobId]);
+
+  // Timer tick
+  const [remaining, setRemaining] = useState(null);
+  useEffect(() => {
+    if (!deadline) return;
+    const tick = () => {
+      const ms = Math.max(0, deadline - Date.now());
+      setRemaining(ms);
+      if (ms === 0) {
+        clearInterval(timerRef.current);
+        handleSubmit(true);
+      }
+    };
+    tick();
+    timerRef.current = setInterval(tick, 1000);
+    return () => clearInterval(timerRef.current);
+  }, [deadline]);
+
+  const sections = useMemo(() => assessment?.sections || [], [assessment]);
+  const totalQuestions = useMemo(() => sections.reduce((sum, s) => sum + (s.questions?.length || 0), 0), [sections]);
+  const answeredCount = useMemo(() => Object.keys(answers).filter((k) => {
+    const v = answers[k];
+    return Array.isArray(v) ? v.length > 0 : (v !== undefined && v !== null && String(v).trim() !== '');
+  }).length, [answers]);
+
+  const handleAnswerChange = (sectionIndex, questionIndex, value) => {
+    setAnswers((prev) => ({ ...prev, [`${sectionIndex}-${questionIndex}`]: value }));
+  };
+
+  const toggleMark = (sectionIndex, questionIndex) => {
+    const key = `${sectionIndex}-${questionIndex}`;
+    setMarked((m) => ({ ...m, [key]: !m[key] }));
+  };
+
+  const formatTime = (ms) => {
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${h > 0 ? h + 'h ' : ''}${m}m ${s}s`;
+  };
+
+  const handleSubmit = async (auto = false) => {
+    if (!assessment) return;
+    try {
+      const payload = {
+        candidateId: 0,
+        answers,
+      };
+      const res = await fetch(`/api/assessments/${jobId}/submit`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Submission failed');
+      localStorage.removeItem(keyFor(jobId));
+      localStorage.removeItem(deadlineKeyFor(jobId));
+      alert(auto ? 'Time up! Assessment submitted.' : 'Assessment submitted successfully!');
+      navigate('/jobs/applied');
+    } catch (e) {
+      alert(`Failed to submit: ${e.message}`);
+    }
+  };
 
   if (!candidate) {
     return <PreAssessmentForm onSubmit={handleFormSubmit} />;
   }
 
   return (
-    <div>
-      <h2>Assessment</h2>
-      <div style={{ marginBottom: '1rem' }}>
-        <label>Enter Job ID to load assessment: </label>
-        <input type="text" value={jobId} onChange={(e) => setJobId(e.target.value)} />
+    <div className="runtime-container">
+      <div className="runtime-header card">
+        <div className="runtime-title">{assessment ? assessment.title : 'Assessment'}</div>
+        <div className="runtime-meta">
+          {remaining !== null && (
+            <span className={`timer-pill ${remaining < 5 * 60 * 1000 ? 'warn' : ''}`}>
+              ⏱️ {formatTime(remaining)}
+            </span>
+          )}
+          <div className="progress">
+            <div className="progress-bar" style={{ width: `${totalQuestions ? Math.round((answeredCount / totalQuestions) * 100) : 0}%` }} />
+          </div>
+          <div className="progress-text">{answeredCount}/{totalQuestions} answered</div>
+        </div>
       </div>
 
-      {assessment ? (
-        <form onSubmit={handleSubmit}>
-          <h3>{assessment.title}</h3>
-          <h4>{assessment.rounds[currentRound].title}</h4>
-          {assessment.rounds[currentRound].questions.map((q, index) => (
-            <div key={index} style={{ marginBottom: '1rem' }}>
-              <label>{index + 1}. {q.text}</label>
-              <input
-                type="text"
-                onChange={(e) => handleAnswerChange(currentRound, index, e.target.value)}
-                required
-              />
-            </div>
-          ))}
-          <div style={{ marginTop: '1rem' }}>
-            {currentRound > 0 && (
-              <button type="button" onClick={() => setCurrentRound(currentRound - 1)}>
-                Previous Round
-              </button>
-            )}
-            {currentRound < assessment.rounds.length - 1 && (
-              <button type="button" onClick={() => setCurrentRound(currentRound + 1)}>
-                Next Round
-              </button>
-            )}
-            {currentRound === assessment.rounds.length - 1 && (
-              <button type="submit">Submit Assessment</button>
-            )}
-          </div>
-        </form>
+      {loading ? (
+        <div className="card" style={{ textAlign: 'center', padding: '1rem' }}>Loading assessment...</div>
+      ) : error ? (
+        <div className="card" style={{ color: 'red', textAlign: 'center', padding: '1rem' }}>Error: {error}</div>
+      ) : sections.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', padding: '1rem' }}>No sections found.</div>
       ) : (
-        <p>Enter a Job ID to load the assessment.</p>
+        <div className="runtime-content">
+          <aside className="section-nav card">
+            <div className="section-nav-title">Sections</div>
+            <ul className="section-list">
+              {sections.map((s, idx) => (
+                <li key={idx}>
+                  <button
+                    className={`section-item ${idx === currentSection ? 'active' : ''}`}
+                    onClick={() => setCurrentSection(idx)}
+                  >
+                    <span className="section-name">{s.title || `Section ${idx+1}`}</span>
+                    <span className="section-count">{s.questions?.length || 0}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </aside>
+
+          <section className="question-area">
+            <div className="card">
+              <h3 className="section-heading">{sections[currentSection]?.title}</h3>
+              <p className="section-desc">{sections[currentSection]?.description}</p>
+            </div>
+
+            {(sections[currentSection]?.questions || []).map((q, qIdx) => {
+              const key = `${currentSection}-${qIdx}`;
+              const val = answers[key];
+              const isMarked = !!marked[key];
+              const isAnswered = Array.isArray(val) ? val.length > 0 : (val !== undefined && val !== null && String(val).trim() !== '');
+              return (
+                <div key={qIdx} className={`question-card card ${isMarked ? 'marked' : ''} ${isAnswered ? 'answered' : ''}`}>
+                  <div className="question-header">
+                    <div className="question-title">{qIdx + 1}. {q.label || q.text}</div>
+                    <div className="question-actions">
+                      <button type="button" className="btn btn-secondary" onClick={() => toggleMark(currentSection, qIdx)}>
+                        {isMarked ? 'Unmark' : 'Mark for Review'}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="question-body">
+                    {q.type === 'single' && Array.isArray(q.options) && (
+                      <div className="options-grid">
+                        {q.options.map((opt, i) => (
+                          <label key={i} className="option-item">
+                            <input
+                              type="radio"
+                              name={`q-${key}`}
+                              checked={val === opt}
+                              onChange={() => handleAnswerChange(currentSection, qIdx, opt)}
+                            />
+                            <span>{opt}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+
+                    {q.type === 'multi' && Array.isArray(q.options) && (
+                      <div className="options-grid">
+                        {q.options.map((opt, i) => {
+                          const arr = Array.isArray(val) ? val : [];
+                          const checked = arr.includes(opt);
+                          return (
+                            <label key={i} className="option-item">
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={(e) => {
+                                  const next = new Set(arr);
+                                  if (e.target.checked) next.add(opt); else next.delete(opt);
+                                  handleAnswerChange(currentSection, qIdx, Array.from(next));
+                                }}
+                              />
+                              <span>{opt}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {q.type === 'short' && (
+                      <input
+                        className="text-input"
+                        type="text"
+                        placeholder={q.placeholder || ''}
+                        value={val || ''}
+                        onChange={(e) => handleAnswerChange(currentSection, qIdx, e.target.value)}
+                      />
+                    )}
+
+                    {q.type === 'long' && (
+                      <textarea
+                        className="text-area"
+                        rows={4}
+                        placeholder={q.placeholder || ''}
+                        value={val || ''}
+                        onChange={(e) => handleAnswerChange(currentSection, qIdx, e.target.value)}
+                      />
+                    )}
+
+                    {q.type === 'numeric' && (
+                      <input
+                        className="text-input"
+                        type="number"
+                        placeholder={q.placeholder || ''}
+                        min={q.validation?.min}
+                        max={q.validation?.max}
+                        value={val ?? ''}
+                        onChange={(e) => handleAnswerChange(currentSection, qIdx, e.target.value === '' ? '' : Number(e.target.value))}
+                      />
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+
+            <div className="runtime-actions">
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => setCurrentSection((i) => Math.max(0, i - 1))}
+                disabled={currentSection === 0}
+              >
+                ← Previous
+              </button>
+              {currentSection < sections.length - 1 ? (
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={() => setCurrentSection((i) => Math.min(sections.length - 1, i + 1))}
+                >
+                  Next →
+                </button>
+              ) : (
+                <button type="button" className="btn btn-primary" onClick={() => handleSubmit(false)}>
+                  Submit Assessment
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
       )}
     </div>
   );

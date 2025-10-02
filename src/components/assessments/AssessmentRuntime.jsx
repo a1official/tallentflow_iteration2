@@ -17,6 +17,7 @@ const AssessmentRuntime = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [deadline, setDeadline] = useState(null);
+  const [showReview, setShowReview] = useState(false);
   const timerRef = useRef();
 
   const handleFormSubmit = (details) => {
@@ -291,12 +292,87 @@ const AssessmentRuntime = () => {
                   Next →
                 </button>
               ) : (
-                <button type="button" className="btn btn-primary" onClick={() => handleSubmit(false)}>
-                  Submit Assessment
+                <button type="button" className="btn btn-primary" onClick={() => setShowReview(true)}>
+                  Review & Submit
                 </button>
               )}
+              <button type="button" className="btn" onClick={() => setShowReview(true)}>
+                Review
+              </button>
             </div>
           </section>
+        </div>
+      )}
+
+      {showReview && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: '#fff', borderRadius: '12px', width: '95%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', padding: '1rem 1.25rem', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+              <h3 style={{ margin: 0 }}>Review Answers</h3>
+              <button onClick={() => setShowReview(false)} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#666' }}>×</button>
+            </div>
+
+            <div className="card" style={{ marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+                <div><strong>Total:</strong> {totalQuestions}</div>
+                <div><strong>Answered:</strong> {answeredCount}</div>
+                <div><strong>Unanswered:</strong> {totalQuestions - answeredCount}</div>
+                <div><strong>Marked:</strong> {Object.values(marked).filter(Boolean).length}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gap: '0.75rem' }}>
+              {sections.map((s, sIdx) => (
+                <div key={sIdx} className="card">
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                    <div style={{ fontWeight: 600 }}>{s.title || `Section ${sIdx + 1}`}</div>
+                    <div style={{ fontSize: '0.85rem', color: '#666' }}>{s.questions?.length || 0} questions</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '8px' }}>
+                    {(s.questions || []).map((q, qIdx) => {
+                      const key = `${sIdx}-${qIdx}`;
+                      const val = answers[key];
+                      const isMarked = !!marked[key];
+                      const isAnswered = Array.isArray(val) ? val.length > 0 : (val !== undefined && val !== null && String(val).trim() !== '');
+                      return (
+                        <div key={qIdx} style={{ border: '1px solid #eee', borderRadius: '8px', padding: '8px', background: '#fff' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{qIdx + 1}.</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              {isMarked && <span title="Marked for review">🔖</span>}
+                              {isAnswered ? <span title="Answered" style={{ color: '#28a745' }}>✔</span> : <span title="Unanswered" style={{ color: '#dc3545' }}>•</span>}
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '0.85rem', color: '#555', margin: '6px 0' }}>{q.label || q.text}</div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '6px' }}>
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => { setCurrentSection(sIdx); setShowReview(false); }}
+                            >
+                              Go to
+                            </button>
+                            <button
+                              type="button"
+                              className="btn"
+                              onClick={() => toggleMark(sIdx, qIdx)}
+                            >
+                              {isMarked ? 'Unmark' : 'Mark'}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.75rem' }}>
+              <button className="btn" onClick={() => setShowReview(false)} style={{ background: '#6c757d', color: '#fff' }}>Back</button>
+              <button className="btn btn-primary" onClick={() => handleSubmit(false)}>Submit Now</button>
+            </div>
+          </div>
         </div>
       )}
     </div>

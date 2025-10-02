@@ -17,7 +17,7 @@ const AssessmentCard = ({ assessment, onDeploy, onViewResults }) => {
         <button className="btn btn-secondary" onClick={() => onViewResults(assessment.id)}>
           View Results
         </button>
-        <button className="btn btn-primary" onClick={() => onDeploy(assessment.id)}>
+        <button className="btn btn-primary" onClick={() => onDeploy(assessment)}>
           Deploy
         </button>
       </div>

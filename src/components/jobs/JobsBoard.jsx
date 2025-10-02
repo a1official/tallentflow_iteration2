@@ -31,13 +31,16 @@ export default function JobsBoard() {
       const pageSize = viewMode === 'kanban' ? 1000 : itemsPerPage
       const currentPage = viewMode === 'kanban' ? 1 : page
       
+      const effectiveSortBy = viewMode === 'kanban' ? 'order' : sortBy
+      const effectiveSortOrder = viewMode === 'kanban' ? 'asc' : sortOrder
+
       const params = new URLSearchParams({
         page: currentPage.toString(),
         pageSize: pageSize.toString(),
         ...(search && { search }),
         ...(statusFilter && { status: statusFilter }),
-        ...(sortBy && { sortBy }),
-        ...(sortOrder && { sortOrder })
+        ...(effectiveSortBy && { sortBy: effectiveSortBy }),
+        ...(effectiveSortOrder && { sortOrder: effectiveSortOrder })
       })
       
       const response = await fetch(`/api/jobs?${params}`)
@@ -217,12 +220,51 @@ export default function JobsBoard() {
         })
       }
     } else {
-      // Handle reordering within the same column
-      console.log('🔄 Reordering within same column')
-      setNotification({
-        message: `Reordering within columns coming soon!`,
-        type: 'info'
-      })
+      // Handle reordering within the same column (by order index)
+      try {
+        const allSorted = jobs.slice().sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+        const sourceItemIndex = allSorted.findIndex((it) => it.id === job.id)
+        const fromOrder = sourceItemIndex === -1 ? (job.order ?? 0) : sourceItemIndex
+
+        // Remove the dragged item to compute destination index correctly
+        const withoutSource = allSorted.filter((it) => it.id !== job.id)
+        const columnStatus = source.droppableId
+        const columnIndices = withoutSource
+          .map((it, idx) => ({ it, idx }))
+          .filter(({ it }) => it.status === columnStatus)
+          .map(({ idx }) => idx)
+
+        // Map destination (column-based) index to global order index
+        let toOrder
+        if (destination.index >= columnIndices.length) {
+          // Insert after the last item of the column (at the end)
+          toOrder = columnIndices.length > 0 ? columnIndices[columnIndices.length - 1] + 1 : withoutSource.length
+        } else {
+          toOrder = columnIndices[destination.index]
+        }
+
+        const res = await fetch(`/api/jobs/${jobId}/reorder`, {
+          method: 'PATCH',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ fromOrder, toOrder })
+        })
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}))
+          throw new Error(errData.error || 'Failed to reorder')
+        }
+
+        setNotification({
+          message: `Reordered "${job.title}"`,
+          type: 'success'
+        })
+        loadJobs()
+      } catch (e) {
+        console.error('❌ Reorder failed:', e)
+        setNotification({
+          message: `Failed to reorder: ${e.message}`,
+          type: 'error'
+        })
+      }
     }
   }
 

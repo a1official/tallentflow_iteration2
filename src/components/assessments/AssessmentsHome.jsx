@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import AssessmentCard from './AssessmentCard';
 import AssessmentBuilder from './AssessmentBuilder';
 import AssessmentResults from './AssessmentResults';
+import AssessmentDeployModal from './AssessmentDeployModal';
+import Notification from '../common/Notification';
 
 const AssessmentsHome = () => {
   const [assessments, setAssessments] = useState([]);
@@ -9,6 +11,9 @@ const AssessmentsHome = () => {
   const [error, setError] = useState(null);
   const [showBuilder, setShowBuilder] = useState(false);
   const [viewingResultsOf, setViewingResultsOf] = useState(null);
+  const [showDeploy, setShowDeploy] = useState(false);
+  const [deployAssessment, setDeployAssessment] = useState(null);
+  const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     const load = async () => {
@@ -28,12 +33,9 @@ const AssessmentsHome = () => {
     load();
   }, []);
 
-  const handleDeploy = (assessmentId) => {
-    const jobId = prompt('Enter the Job ID to deploy this assessment to:');
-    if (jobId) {
-      console.log(`Deploying assessment ${assessmentId} to job ${jobId}`);
-      alert(`Assessment ${assessmentId} deployed to Job ID: ${jobId}`);
-    }
+  const handleDeploy = (assessment) => {
+    setDeployAssessment(assessment);
+    setShowDeploy(true);
   };
 
   const handleViewResults = (assessmentId) => {
@@ -77,11 +79,27 @@ const AssessmentsHome = () => {
             <AssessmentCard
               key={assessment.id}
               assessment={assessment}
-              onDeploy={handleDeploy}
+              onDeploy={() => handleDeploy(assessment)}
               onViewResults={handleViewResults}
             />
           ))}
         </div>
+      )}
+      <AssessmentDeployModal
+        isOpen={showDeploy}
+        assessment={deployAssessment}
+        onClose={() => { setShowDeploy(false); setDeployAssessment(null); }}
+        onDeployed={(jobId) => {
+          setNotification({ type: 'success', message: `Assessment deployed to Job #${jobId}` });
+        }}
+      />
+
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
       )}
     </div>
   );

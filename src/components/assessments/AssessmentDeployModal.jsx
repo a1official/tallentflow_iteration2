@@ -7,9 +7,16 @@ export default function AssessmentDeployModal({ isOpen, assessment, onClose, onD
   const [search, setSearch] = useState('')
   const [selectedJobId, setSelectedJobId] = useState(null)
   const [deploying, setDeploying] = useState(false)
+  const [tab, setTab] = useState('assessment') // 'assessment' | 'ai'
+  const [geminiKey, setGeminiKey] = useState('')
+  const [aiIntro, setAiIntro] = useState('Welcome! I will ask a few questions about your experience. Answer clearly and concisely.')
+  const [aiQuestions, setAiQuestions] = useState(['Tell me about your most impactful project.','How do you approach debugging complex issues?','Describe a time you improved performance in an app.'])
+  const [aiVoice, setAiVoice] = useState('en-US')
 
   useEffect(() => {
     if (!isOpen) return
+    const savedKey = localStorage.getItem('tf_gemini_api_key') || ''
+    setGeminiKey(savedKey)
     const loadJobs = async () => {
       setLoading(true)
       setError(null)
@@ -54,19 +61,36 @@ export default function AssessmentDeployModal({ isOpen, assessment, onClose, onD
 
     try {
       const { id, jobId: _ignoreJob, createdAt, updatedAt, ...rest } = assessment
-      const payload = {
+      const base = {
         ...rest,
         jobId: selectedJobId,
         updatedAt: new Date().toISOString(),
         isActive: true
       }
+
+      let payload = base
+      if (tab === 'ai') {
+        // Save key locally for HR only (not stored on server)
+        localStorage.setItem('tf_gemini_api_key', geminiKey || '')
+        payload = {
+          ...base,
+          aiInterviewerEnabled: true,
+          aiConfig: {
+            provider: 'gemini',
+            voice: aiVoice,
+            intro: aiIntro,
+            questions: aiQuestions.filter(Boolean)
+          }
+        }
+      }
+
       const res = await fetch(`/api/assessments/${selectedJobId}`, {
         method: 'PUT',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload)
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to deploy assessment')
+      if (!res.ok) throw new Error(data.error || 'Failed to deploy')
       if (onDeployed) onDeployed(selectedJobId)
       if (onClose) onClose()
     } catch (e) {
@@ -110,6 +134,15 @@ export default function AssessmentDeployModal({ isOpen, assessment, onClose, onD
           </div>
         )}
 
+        {/* Tabs */}
+        <div className="card" style={{ marginBottom: '0.75rem', padding: '0.5rem' }}>
+          <div style={{ display: 'inline-flex', border: '1px solid #ddd', borderRadius: '8px', overflow: 'hidden' }}>
+            <button onClick={() => setTab('assessment')} className="btn" style={{ background: tab==='assessment' ? '#007bff' : 'white', color: tab==='assessment' ? 'white' : '#333' }}>Assessment</button>
+            <button onClick={() => setTab('ai')} className="btn" style={{ background: tab==='ai' ? '#007bff' : 'white', color: tab==='ai' ? 'white' : '#333' }}>AI Interviewer</button>
+          </div>
+        </div>
+
+        {/* Job Picker */}
         <div className="card" style={{ marginBottom: '1rem' }}>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.75rem' }}>
             <input
@@ -160,6 +193,38 @@ export default function AssessmentDeployModal({ isOpen, assessment, onClose, onD
           </div>
         </div>
 
+        {tab==='ai' && (
+          <div className="card" style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>Gemini API Key (stored locally)</label>
+                <input type="password" value={geminiKey} onChange={(e)=>setGeminiKey(e.target.value)} placeholder="AIza..." style={{ width:'100%', padding:'0.5rem', border:'1px solid #ddd', borderRadius:6 }} />
+                <div style={{ fontSize: '0.8rem', color: '#666', marginTop: 4 }}>Your key is saved in this browser only and is not sent to the server.</div>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>Intro Prompt</label>
+                <input type="text" value={aiIntro} onChange={(e)=>setAiIntro(e.target.value)} style={{ width:'100%', padding:'0.5rem', border:'1px solid #ddd', borderRadius:6 }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>Questions</label>
+                {aiQuestions.map((q,i)=> (
+                  <input key={i} type="text" value={q} onChange={(e)=>{
+                    const next = aiQuestions.slice(); next[i]=e.target.value; setAiQuestions(next);
+                  }} placeholder={`Question ${i+1}`} style={{ width:'100%', padding:'0.5rem', border:'1px solid #ddd', borderRadius:6, marginBottom: 6 }} />
+                ))}
+                <button type="button" className="btn" onClick={()=> setAiQuestions([...aiQuestions, ''])}>+ Add Question</button>
+              </div>
+              <div>
+                <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>Voice</label>
+                <select value={aiVoice} onChange={(e)=>setAiVoice(e.target.value)} style={{ padding:'0.5rem', border:'1px solid #ddd', borderRadius:6 }}>
+                  <option value="en-US">en-US</option>
+                  <option value="en-GB">en-GB</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
           <button className="btn" onClick={onClose} disabled={deploying} style={{ background: '#6c757d', color: 'white' }}>
             Cancel
@@ -169,7 +234,7 @@ export default function AssessmentDeployModal({ isOpen, assessment, onClose, onD
             onClick={handleDeploy}
             disabled={!selectedJobId || deploying}
           >
-            {deploying ? 'Deploying…' : 'Deploy to Selected Job'}
+            {deploying ? 'Deploying…' : (tab==='ai' ? 'Deploy AI Interviewer' : 'Deploy Assessment')}
           </button>
         </div>
       </div>

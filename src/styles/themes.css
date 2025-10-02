@@ -1,0 +1,28 @@
+/* Optional themes; default leaves existing styles untouched */
+
+/* Aurora: teal/emerald accents */
+.theme-aurora .btn-primary { background-color: #10b981; color: #fff; }
+.theme-aurora .btn-primary:hover { background-color: #0ea371; }
+.theme-aurora .card { box-shadow: 0 6px 24px rgba(16,185,129,0.12); }
+.theme-aurora a, .theme-aurora .job-title { color: #0ea5e9; }
+.theme-aurora .side-nav { background: linear-gradient(135deg, #0ea5e9 0%, #10b981 100%); }
+.theme-aurora .status-applied { background: #d1fae5; color: #065f46; border-color: #a7f3d0; }
+.theme-aurora .status-review { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+
+/* Sunset: orange/pink accents */
+.theme-sunset .btn-primary { background-color: #f97316; color: #fff; }
+.theme-sunset .btn-primary:hover { background-color: #ea580c; }
+.theme-sunset .card { box-shadow: 0 6px 24px rgba(249,115,22,0.12); }
+.theme-sunset a, .theme-sunset .job-title { color: #db2777; }
+.theme-sunset .side-nav { background: linear-gradient(135deg, #f97316 0%, #db2777 100%); }
+.theme-sunset .status-applied { background: #fff7ed; color: #9a3412; border-color: #ffedd5; }
+.theme-sunset .status-review { background: #fdf2f8; color: #9d174d; border-color: #fbcfe8; }
+
+/* Midnight: indigo/blue accents */
+.theme-midnight .btn-primary { background-color: #6366f1; color: #fff; }
+.theme-midnight .btn-primary:hover { background-color: #4f46e5; }
+.theme-midnight .card { box-shadow: 0 6px 24px rgba(99,102,241,0.16); }
+.theme-midnight a, .theme-midnight .job-title { color: #2563eb; }
+.theme-midnight .side-nav { background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%); }
+.theme-midnight .status-applied { background: #eef2ff; color: #3730a3; border-color: #e0e7ff; }
+.theme-midnight .status-review { background: #dbeafe; color: #1e40af; border-color: #bfdbfe; }
